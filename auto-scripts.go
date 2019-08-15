@@ -3,17 +3,113 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"log"
+	"strings"
+	"sort"
 	"github.com/spf13/viper"
+	"github.com/urfave/cli"
 )
 
+var configpath string=os.Getenv("HOME") + "/.auto-scripts"
+var currentpath string=os.Getenv("PWD") + "/"
+var configname string="config"
+var configtype string="yaml"
+
 func main() {
-	initViper()
+	err:=initViper()
+
+	if err != nil{
+		log.Fatal("Error initialising \n %s ",err)
+	}
+
+	err = menu()
+
+	if err != nil{
+		log.Fatal("Error Menu \n %s ",err)
+	}
 }
 
-func initViper(){
-	var configpath string=os.Getenv("HOME") + "/.auto-scripts"
-	var configname string="config"
-	var configtype string="yaml"
+func menu() error {
+	app := cli.NewApp()
+	app.Name = "auto-scripts"
+	app.Description = "Auto Scripts - automating remote server management"
+  app.Version = "0.0.5"
+
+  app.Flags = []cli.Flag {
+    cli.StringFlag{
+      Name: "templates, t",
+			Value: viper.GetString("templatefolder"),
+      Usage: "Location of command templates",
+    },
+  }
+
+	var tl=getTemplateList()
+	var appCommands []cli.Command
+
+	for _,template := range tl {
+		var cmdArgs []cli.Flag
+		var aL []string=strings.Split(getTemplateAttribute(template,"arguments"),",")
+
+		cmdArgs=append(cmdArgs, cli.StringFlag{Name: "template",
+											Value: getTemplateFilename(template),})
+		for _,a := range aL {
+			var f cli.Flag
+			if getArgumentAttribute(a,"type") == "param" {
+				f=cli.StringFlag{Name: a + "," + getArgumentAttribute(a,"flag"),
+													Value: getArgumentAttribute(a,"default"),}
+			} else if getArgumentAttribute(a,"type") == "flag"{
+				f=cli.BoolFlag{Name: a + "," + getArgumentAttribute(a,"flag"),}
+			}
+
+			cmdArgs=append(cmdArgs, f)
+		}
+
+		appCommands=append(appCommands,cli.Command{
+						Name: template,
+						Usage: getTemplateFilename(template) + " - " +
+			            	getTemplateAttribute(template,"description"),
+						Flags: cmdArgs,
+						Action: func(c *cli.Context) error {
+											var (
+												args []string
+												cmdOut []byte
+												err    error
+											)
+											c.Command.FullName()
+							        c.Command.HasName("wop")
+							        c.Command.Names()
+							        c.Command.VisibleFlags()
+															
+											fmt.Println("STARTING to execute " + c.String("template") + "\n")
+											args = append(args,c.String("command"))
+
+
+											if cmdOut, err = exec.Command(c.String("template"), args...).Output(); err != nil {
+												fmt.Fprintln(os.Stderr,"Error: ", err)
+												fmt.Println("FAILED Execution of " + c.String("template") + "\n")
+												defer os.Exit(1)
+												return err
+											}
+
+											fmt.Println(string(cmdOut))
+											fmt.Println("SUCCESSFUL Execution of " + c.String("template") + "\n")
+											return nil
+										},
+					})
+		}
+
+  app.Commands = appCommands;
+
+  //sort.Sort(cli.FlagsByName(app.Flags))
+  sort.Sort(cli.CommandsByName(app.Commands))
+
+  return app.Run(os.Args)
+
+}
+
+
+func initViper() error {
 	var configfullpath string=configpath + "/" + configname + "." + configtype
 
 	//Set viper config values
@@ -23,40 +119,85 @@ func initViper(){
 
 	//Create the config file if doesnt exist
 	//Load in the default values
-	setDefaults(configpath,configfullpath)
+	err:=setDefaults(configfullpath)
+	if err != nil{
+			return fmt.Errorf("Error setting defaults: %s", err)
+	}
 
 	// Find and read the config file
-	err := viper.ReadInConfig()
-	check(err,"panic")
+	err = viper.ReadInConfig()
+	if err != nil{
+		return fmt.Errorf("Error reading config: %s", err)
+	}
 
 	// Create the templates folder if doesnt exist
-	dirCreate(viper.GetString("templatefolder"))
+	err=dirCreate(viper.GetString("templatefolder"))
+	if err != nil{
+		return fmt.Errorf("Error reading or creating template folder: %s", err)
+	}
 
 	// Check if Templates Exist
-	if checkTemplates(viper.GetString("templatefolder")) {
-		fmt.Println("Templates Check OK - Continuing")
-	} else {
-		fmt.Println("Templates Check FAILED - Exiting")
-	}
+	return checkTemplates()
+
 }
 
-func checkTemplates(path string) bool{
-	var result bool=true
-	var tl=viper.GetStringMap("templates")
-	for t := range tl {
-		var fn=path+"/"+viper.GetString("templates."+t+".filename")
+func checkTemplates() error{
+	var tl=getTemplateList()
+	for _,t := range tl {
+		var fn=getTemplateFilename(t)
 		if !fileExists(fn){
-			fmt.Println("Template: " + t + " Filename: " + fn + " does not exist. Please copy it into location.")
-			result=false
+			return fmt.Errorf("Template: " + t + " Filename: " + fn + " does not exist. Please copy it into location.")
 		}
 	}
-	return result
+	return nil
 
 }
-func setDefaults(path string, file string){
-	dirCreate(path) //if not exists
-	if(fileCreate(file)){ //if not exists
-		viper.SetDefault("templatefolder", path + "/" + "templates")
+
+func getArgumentList() []string{
+	var tl=viper.GetStringMap("arguments")
+	var argumentList []string
+	for t := range tl {
+		argumentList=append(argumentList,t)
+	}
+	return argumentList
+}
+
+func getArgumentAttribute(argument string, attribute string) string{
+	 return viper.GetString("arguments." + argument + "." + attribute)
+}
+
+func getTemplateList() []string{
+	var tl=viper.GetStringMap("templates")
+	var templateList []string
+	for t := range tl {
+		templateList=append(templateList,t)
+	}
+	return templateList
+}
+
+func getTemplateAttribute(template string, attribute string) string{
+	 return viper.GetString("templates." + template + "." + attribute)
+}
+
+func getTemplateFilename(template string) string{
+	 return viper.GetString("templatefolder") + "/" + getTemplateAttribute(template,"filename")
+}
+
+func setDefaults(file string) error{
+	err:=dirCreate(configpath) //if not exists
+	if err != nil{
+		return fmt.Errorf("Error reading or creating config path folder: %s", err)
+	}
+
+	if(!fileExists(file)){
+
+		err=fileCreate(file) //if not exists
+
+		if err != nil {
+			return fmt.Errorf("Error reading or creating config file: %s", err)
+		}
+
+		viper.SetDefault("templatefolder", configpath + "/" + "templates")
 		viper.SetDefault("filesfolder", "files")
 		viper.SetDefault("templates",
 			map[string]interface{}{"get": map[string]string{"filename": "get-files.sh",
@@ -117,9 +258,9 @@ func setDefaults(path string, file string){
 						"mandatory": "false",
 						"description": "Indicate if a full remote backup required",
 						"default": ""}})
-		err := viper.WriteConfig() // writes current config to predefined path set by 'viper.AddConfigPath()' and 'viper.SetConfigName'
-		check(err,"panic")
+		return viper.WriteConfig() // writes current config to predefined path set by 'viper.AddConfigPath()' and 'viper.SetConfigName'
 	}
+	return nil
 }
 
 func fileExists(filename string) bool {
@@ -131,32 +272,23 @@ func fileExists(filename string) bool {
 		return true
 }
 
-func fileCreate(filename string) bool {
+func fileCreate(filename string) error {
 
     if !fileExists(filename) {
 			var file, err = os.Create(filename)
-			check(err,"panic");
-			return true
+			if err != nil{
+				return(fmt.Errorf("Error create file %s",filename))
+			}
 			defer file.Close()
     }
-		return false
+
+		return nil
 }
 
-func dirCreate(dirname string) {
+func dirCreate(dirname string) error {
     _, err := os.Stat(dirname)
 		if os.IsNotExist(err) {
-			err = os.Mkdir(dirname, 0770)
-			check(err,"panic");
+			return os.Mkdir(dirname, 0770)
 		}
-}
-
-func check(e error, errtype string) {
-			if e != nil {
-				switch errtype {
-						case "panic":
-								panic(fmt.Errorf("%s \n", e))
-				    default:
-				        fmt.Errorf("%s \n", e)
-				    }
-			}
+		return nil
 }
