@@ -34,7 +34,7 @@ func menu() error {
 	app := cli.NewApp()
 	app.Name = "auto-scripts"
 	app.Description = "Auto Scripts - automating remote server management"
-  app.Version = "0.0.5"
+  app.Version = "1.0.0"
 
   app.Flags = []cli.Flag {
     cli.StringFlag{
@@ -79,21 +79,20 @@ func menu() error {
 							        c.Command.VisibleFlags()
 
 
- 											fmt.Printf("Flags %#v\n", c.FlagNames())
+ 											//fmt.Printf("Flags %#v\n", c.FlagNames())
 											for _,a := range c.FlagNames() {
-												fmt.Printf("Argument %#v\n", a)
+												//fmt.Printf("Argument %#v\n", a)
 												if a == "template" {
 														args = append(args,c.String(a))
 												}
 											}
 
 											for _,a := range c.FlagNames() {
-												fmt.Printf("Argument %#v\n", a)
+												//fmt.Printf("Argument %#v\n", a)
 												if a != "template" {
 													if c.String(a) != "" {
-														args = append(args," -" +  getArgumentAttribute(a,"flag") + " " + c.String(a))
-													} else if getArgumentAttribute(a,"type") == "flag" {
-														args = append(args," -" +  getArgumentAttribute(a,"flag"))
+														args = append(args,"-" +  getArgumentAttribute(a,"flag"))
+														args = append(args,c.String(a))
 													}
 												}
 											}
@@ -102,11 +101,11 @@ func menu() error {
 
 											cmdOut, err = exec.Command("/bin/bash",args...).Output()
 											if err != nil {
-												fmt.Printf("FAILED Execution of command %#v with args %#v with error %#v\n",c.String("template"),args,err)
+												fmt.Printf("\nFAILED Execution of command %#v with args %#v\n",c.String("template"),args)
 												return err
 											}
 
-											fmt.Printf("\nOUTPUT:\n%#v\n", string(cmdOut))
+											fmt.Printf("\nOUTPUT:\n%#s\n", cmdOut)
 
 
 											fmt.Printf("SUCCESSFUL Execution of command %#v with args %#v\n",c.String("template"),args)
@@ -214,12 +213,10 @@ func setDefaults(file string) error{
 		}
 
 		viper.SetDefault("templatefolder", configpath + "/" + "templates")
-		viper.SetDefault("filesfolder", "files")
 		viper.SetDefault("templates",
-			map[string]interface{}{"get": map[string]string{"filename": "get-files.sh",
+			map[string]interface{}{"get": map[string]string{"filename": "get.sh",
 				"description": "Pull files from server using rsync",
-				"arguments": "backup,port,timestamp,directory",
-				"backup": "true"},
+				"arguments": "backup,port,timestamp,directory,files,filter"},
 				"local": map[string]string{"filename": "local.sh",
 					"description": "Execute generic bash command on local machine",
 					"arguments": "command"},
@@ -228,11 +225,10 @@ func setDefaults(file string) error{
 					"arguments": "command,port"},
 				"manage": map[string]string{"filename": "manage.sh",
 					"description": "Manage remote service using systemctl",
-					"arguments": "service,port,servicecommand"},
-				"push": map[string]string{"filename": "push-files.sh",
+					"arguments": "service,port,servicecommand,lines"},
+				"push": map[string]string{"filename": "push.sh",
 					"description": "Push files from server using rsync",
-					"arguments": "backup,port,timestamp,directory",
-					"backup": "true"}})
+					"arguments": "backup,port,timestamp,directory,remotebackup,files,filter"}})
 		viper.SetDefault("Arguments",
 			map[string]interface{}{"port": map[string]string{"flag": "p",
 					"type": "param",
@@ -243,11 +239,21 @@ func setDefaults(file string) error{
 						"type": "param",
 						"mandatory": "false",
 						"description": "Timestamp to be used in backups",
-						"default": "$(date +%Y%m%d%H%M%S)"},
+						"default": ""},
+					"files": map[string]string{"flag": "f",
+						"type": "param",
+						"mandatory": "false",
+						"description": "Directory to store files (relative to local path)",
+						"default": "files"},
 					"directory": map[string]string{"flag": "d",
 						"type": "param",
 						"mandatory": "true",
 						"description": "Directory for remote syncing in absolute then used relatively locally",
+						"default": ""},
+					"filter": map[string]string{"flag": "i",
+						"type": "param",
+						"mandatory": "false",
+						"description": "For retieving a specific file or filter of files",
 						"default": ""},
 					"command": map[string]string{"flag": "c",
 						"type": "param",
@@ -259,6 +265,11 @@ func setDefaults(file string) error{
 						"mandatory": "true",
 						"description": "systemctl comands Start, Stop, Restart or Status",
 						"default": ""},
+					"lines": map[string]string{"flag": "l",
+						"type": "param",
+						"mandatory": "false",
+						"description": "Log lines to return",
+						"default": "100"},
 					"service": map[string]string{"flag": "s",
 						"type": "param",
 						"mandatory": "true",
