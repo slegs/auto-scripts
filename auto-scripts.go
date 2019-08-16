@@ -72,28 +72,44 @@ func menu() error {
 						Flags: cmdArgs,
 						Action: func(c *cli.Context) error {
 											var (
-												args []string
 												cmdOut []byte
 												err    error
+												args	[]string
 											)
-											c.Command.FullName()
-							        c.Command.HasName("wop")
-							        c.Command.Names()
 							        c.Command.VisibleFlags()
-															
-											fmt.Println("STARTING to execute " + c.String("template") + "\n")
-											args = append(args,c.String("command"))
 
 
-											if cmdOut, err = exec.Command(c.String("template"), args...).Output(); err != nil {
-												fmt.Fprintln(os.Stderr,"Error: ", err)
-												fmt.Println("FAILED Execution of " + c.String("template") + "\n")
-												defer os.Exit(1)
+ 											fmt.Printf("Flags %#v\n", c.FlagNames())
+											for _,a := range c.FlagNames() {
+												fmt.Printf("Argument %#v\n", a)
+												if a == "template" {
+														args = append(args,c.String(a))
+												}
+											}
+
+											for _,a := range c.FlagNames() {
+												fmt.Printf("Argument %#v\n", a)
+												if a != "template" {
+													if c.String(a) != "" {
+														args = append(args," -" +  getArgumentAttribute(a,"flag") + " " + c.String(a))
+													} else if getArgumentAttribute(a,"type") == "flag" {
+														args = append(args," -" +  getArgumentAttribute(a,"flag"))
+													}
+												}
+											}
+
+											fmt.Printf("STARTING Execution of command %#v with args %#v",c.String("template"),args)
+
+											cmdOut, err = exec.Command("/bin/bash",args...).Output()
+											if err != nil {
+												fmt.Printf("FAILED Execution of command %#v with args %#v with error %#v\n",c.String("template"),args,err)
 												return err
 											}
 
-											fmt.Println(string(cmdOut))
-											fmt.Println("SUCCESSFUL Execution of " + c.String("template") + "\n")
+											fmt.Printf("\nOUTPUT:\n%#v\n", string(cmdOut))
+
+
+											fmt.Printf("SUCCESSFUL Execution of command %#v with args %#v\n",c.String("template"),args)
 											return nil
 										},
 					})
@@ -101,7 +117,7 @@ func menu() error {
 
   app.Commands = appCommands;
 
-  //sort.Sort(cli.FlagsByName(app.Flags))
+  sort.Sort(cli.FlagsByName(app.Flags))
   sort.Sort(cli.CommandsByName(app.Commands))
 
   return app.Run(os.Args)
