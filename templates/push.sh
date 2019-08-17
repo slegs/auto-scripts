@@ -5,7 +5,7 @@ RS=${PWD##*/}
 ABSOLUTE=${PWD}
 NOW="$(date +%Y%m%d%H%M%S)"
 
-while getopts ":d:b:f:p:t:i:r:" opt; do
+while getopts ":d:b:f:p:t:i:e:r:" opt; do
   case $opt in
     d) DIR1="${OPTARG}"
     ;;
@@ -18,6 +18,8 @@ while getopts ":d:b:f:p:t:i:r:" opt; do
     t) NOW="${OPTARG}"
     ;;
     i) FILTER="${OPTARG}"
+    ;;
+    e) EXCEPT="${OPTARG}"
     ;;
     r) REMOTEBACKUP="${OPTARG}"
     ;;
@@ -58,6 +60,16 @@ if [ "x" == "x${FILESDIR}}" ]; then
   exit 4
 fi
 
+#Deal with excludes
+EXCLUDESTRING=""
+if [ "x" != "x${EXCEPT}}" ]; then
+  for I in $(echo ${EXCEPT} | sed "s/,/ /g")
+  do
+      # call your procedure/other scripts here below
+      EXCLUDESTRING="${EXCLUDESTRING} --exclude ${I} "
+  done
+fi
+
 
 if [ ${REMOTEBACKUP} == "true" ]; then
   ssh -p ${PORT} root@${RS} "mkdir -p ${BACKUPDIR}/${NOW}${DIR1}"
@@ -67,6 +79,6 @@ if [ ${REMOTEBACKUP} == "true" ]; then
 fi
 
 sleep 1
-rsync -rlptD -e "ssh -p ${PORT}" --progress  --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1}/ --suffix=".deleted" --delete ${FILESDIR}${DIR1}/${FILTER} root@${RS}:${DIR1}/${FILTER}
+rsync -rlptD -e "ssh -p ${PORT}" --progress  --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1}/ --suffix=".deleted" --delete ${EXCLUDESTRING} ${FILESDIR}${DIR1}/${FILTER} root@${RS}:${DIR1}/${FILTER}
 
 exit 0

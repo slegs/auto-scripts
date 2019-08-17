@@ -34,7 +34,7 @@ func menu() error {
 	app := cli.NewApp()
 	app.Name = "auto-scripts"
 	app.Description = "Auto Scripts - automating remote server management"
-  app.Version = "1.0.0"
+  app.Version = "1.1.0"
 
   app.Flags = []cli.Flag {
     cli.StringFlag{
@@ -216,7 +216,7 @@ func setDefaults(file string) error{
 		viper.SetDefault("templates",
 			map[string]interface{}{"get": map[string]string{"filename": "get.sh",
 				"description": "Pull files from server using rsync",
-				"arguments": "backup,port,timestamp,directory,files,filter"},
+				"arguments": "backup,port,timestamp,directory,files,filter,except"},
 				"local": map[string]string{"filename": "local.sh",
 					"description": "Execute generic bash command on local machine",
 					"arguments": "command"},
@@ -228,7 +228,7 @@ func setDefaults(file string) error{
 					"arguments": "service,port,servicecommand,lines"},
 				"push": map[string]string{"filename": "push.sh",
 					"description": "Push files from server using rsync",
-					"arguments": "backup,port,timestamp,directory,remotebackup,files,filter"}})
+					"arguments": "backup,port,timestamp,directory,remotebackup,files,filter,except"}})
 		viper.SetDefault("Arguments",
 			map[string]interface{}{"port": map[string]string{"flag": "p",
 					"type": "param",
@@ -254,6 +254,11 @@ func setDefaults(file string) error{
 						"type": "param",
 						"mandatory": "false",
 						"description": "For retieving a specific file or filter of files",
+						"default": ""},
+					"except": map[string]string{"flag": "e",
+						"type": "param",
+						"mandatory": "false",
+						"description": "Exception directories for exclusion in push",
 						"default": ""},
 					"command": map[string]string{"flag": "c",
 						"type": "param",

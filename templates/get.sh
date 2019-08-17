@@ -7,7 +7,7 @@ ABSOLUTE=${PWD}
 NOW="$(date +%Y%m%d%H%M%S)"
 FILTER=""
 
-while getopts ":d:b:f:p:t:i:" opt; do
+while getopts ":d:b:f:p:t:e:i:" opt; do
   case $opt in
     d) DIR1="${OPTARG}"
     ;;
@@ -20,6 +20,8 @@ while getopts ":d:b:f:p:t:i:" opt; do
     t) NOW="${OPTARG}"
     ;;
     i) FILTER="${OPTARG}"
+    ;;
+    e) EXCEPT="${OPTARG}"
     ;;
     \?) echo "An invalid option has been entered: ${OPTARG}"
         echo
@@ -58,12 +60,22 @@ if [ "x" == "x${FILESDIR}}" ]; then
   exit 4
 fi
 
+#Deal with excludes
+EXCLUDESTRING=""
+if [ "x" != "x${EXCEPT}}" ]; then
+  for I in $(echo ${EXCEPT} | sed "s/,/ /g")
+  do
+      # call your procedure/other scripts here below
+      EXCLUDESTRING="${EXCLUDESTRING} --exclude ${I} "
+  done
+fi
+
 mkdir -p ${FILESDIR}${DIR1}
 
 #./delete-backups.sh "${BACKUPDIR}"
 
 sleep 1
 
-rsync -rlptD -e "ssh -p ${PORT}" --progress --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1} --suffix=".deleted" --delete root@${RS}:${DIR1}/${FILTER} ${FILESDIR}${DIR1}/${FILTER}
+rsync -rlptD -e "ssh -p ${PORT}" --progress --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1} --suffix=".deleted" --delete ${EXCLUDESTRING} root@${RS}:${DIR1}/${FILTER} ${FILESDIR}${DIR1}/${FILTER}
 
 exit 0
