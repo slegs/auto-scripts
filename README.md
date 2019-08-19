@@ -3,7 +3,7 @@
 Generate and run bash scripts for managing your remote servers with controlled flags and defaults
 * Written in Golang
 * Creates configuration folder in ~/.auto-scripts
-* Assumes host folder where auto-scripts is run is named as remote server FQDN
+* Assumes folder from where auto-scripts is called is named with remote server FQDN
 * Assumes SSH available through keys (no passwords)
 * config.yaml sets default values
 * create further templates which are stored in templates folder and reference in config.yaml
