@@ -18,5 +18,5 @@ Default Command Types with precreated templates
 5. Manage - remote execution of systemctl
 
 Uses
-* Viper for reading yaml config file github.com/spf13/viper
-* Urfave Cli for calling the bash scripts with flags and defaults github.com/urfave/cli
+* Viper for reading yaml config file (github.com/spf13/viper)
+* Urfave Cli for calling the bash scripts with flags and defaults (github.com/urfave/cli)
