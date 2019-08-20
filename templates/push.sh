@@ -79,6 +79,6 @@ if [ ${REMOTEBACKUP} == "true" ]; then
 fi
 
 sleep 1
-rsync -rlptD -e "ssh -p ${PORT}" --progress  --backup --backup-dir=${BACKUPDIR}/${NOW}${DIR1}/ --suffix=".deleted" --delete ${EXCLUDESTRING} ${FILESDIR}${DIR1}/${FILTER} root@${RS}:${DIR1}/${FILTER}
+rsync -rlptDiv -e "ssh -p ${PORT}" --progress --backup --backup-dir=${BACKUPDIR}/${NOW}${DIR1}/ --suffix=".deleted" --delete ${EXCLUDESTRING} ${FILESDIR}${DIR1}/${FILTER} root@${RS}:${DIR1}/${FILTER}
 
 exit 0

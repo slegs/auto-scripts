@@ -76,6 +76,6 @@ mkdir -p ${FILESDIR}${DIR1}
 
 sleep 1
 
-rsync -rlptD -e "ssh -p ${PORT}" --progress --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1} --suffix=".deleted" --delete ${EXCLUDESTRING} root@${RS}:${DIR1}/${FILTER} ${FILESDIR}${DIR1}/${FILTER}
+rsync -rlptDiv -e "ssh -p ${PORT}" --progress --backup --backup-dir=${ABSOLUTE}${BACKUPDIR}/${NOW}${DIR1} --suffix=".deleted" --delete ${EXCLUDESTRING} root@${RS}:${DIR1}/${FILTER} ${FILESDIR}${DIR1}/${FILTER}
 
 exit 0
