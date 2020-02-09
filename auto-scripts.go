@@ -34,7 +34,7 @@ func menu() error {
 	app := cli.NewApp()
 	app.Name = "auto-scripts"
 	app.Description = "Auto Scripts - automating remote server management"
-  app.Version = "1.1.0"
+  app.Version = "1.1.1"
 
   app.Flags = []cli.Flag {
     cli.StringFlag{
@@ -284,7 +284,7 @@ func setDefaults(file string) error{
 						"type": "param",
 						"mandatory": "false",
 						"description": "Backup Directory (relative for local and absolute for remote)",
-						"default": "backup"},
+						"default": "/backup"},
 					"remotebackup": map[string]string{"flag": "r",
 						"type": "flag",
 						"mandatory": "false",
