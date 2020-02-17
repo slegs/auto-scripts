@@ -36,7 +36,7 @@ done
 
 #Check Mandatory Options
 if [ "x" == "x${DIR1}}" ]; then
-  echo "-d targt directory is required"
+  echo "-d target directory is required"
   echo
   exit 4
 fi
